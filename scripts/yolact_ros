@@ -404,7 +404,10 @@ def main(args):
   
   model_path_str = rospy.get_param('~model_path', os.path.join(yolact_path, "scripts/yolact/weights/yolact_base_54_800000.pth"))
   model_path = SavePath.from_str(model_path_str)
-  set_cfg(model_path.model_name + '_config')
+  #set_cfg(model_path.model_name + '_config')
+  config_str = rospy.get_param('~config',model_path.model_name + '_config')
+  set_cfg(config_str)
+  
 
   with torch.no_grad():
       cudnn.benchmark = True
