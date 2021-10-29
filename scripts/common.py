@@ -280,7 +280,11 @@ class YolactNode:
 
   def evalimage(self, cv_image, image_header):
     with torch.no_grad():
-      frame = torch.from_numpy(cv_image).cuda().float()
+      if torch.cuda.is_available():
+        frame = torch.from_numpy(cv_image).cuda().float()
+      else:
+        frame = torch.from_numpy(cv_image).float()
+      
       batch = FastBaseTransform()(frame.unsqueeze(0))
       preds = self.net(batch)
 
@@ -387,19 +391,26 @@ def main(ros_node):
   config_str = rospy.get_param('~config',model_path.model_name + '_config')
   set_cfg(config_str)
   
-
   with torch.no_grad():
       cudnn.benchmark = True
       cudnn.fastest = True
-      torch.set_default_tensor_type('torch.cuda.FloatTensor')   
+      if torch.cuda.is_available():
+          torch.set_default_tensor_type('torch.cuda.FloatTensor')   
+      else:
+          torch.set_default_tensor_type('torch.FloatTensor')
 
       print('Loading model from', model_path_str)
       net = Yolact()
-      net.load_weights(model_path_str)
+
+      map_location = None if torch.cuda.is_available() else 'cpu'
+      net.load_weights(model_path_str, map_location=map_location)
+
       net.eval()
       print('Done.')
 
-      net = net.cuda()
+      if torch.cuda.is_available():
+          net = net.cuda()
+      
       net.detect.use_fast_nms = True
       cfg.mask_proto_debug = False
 
